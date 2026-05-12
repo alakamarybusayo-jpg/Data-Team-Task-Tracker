@@ -280,7 +280,17 @@ function renderMembers(){
 
 function toggleMember(id){if(openCards.has(id))openCards.delete(id);else openCards.add(id);renderMembers();}
 function toggleAdd(mid,type){const r=document.getElementById(`arow-${mid}-${type}`);if(!r)return;const s=r.style.display!=='none';r.style.display=s?'none':'flex';if(!s)document.getElementById(`ainp-${mid}-${type}`).focus();}
-async function saveTask(mid,type){const inp=document.getElementById(`ainp-${mid}-${type}`);const val=inp.value.trim();if(!val||!db)return;inp.value='';await db.from('tasks').insert({member_id:mid,type,text:val});}
+
+
+async function saveTask(mid, type, text) {
+  if (!text || !db) return;
+
+  await db.from('tasks').insert({
+    member_id: mid,
+    type: type,
+    text: text.trim()
+  });
+}
 async function removeTask(id){if(!db)return;await db.from('tasks').delete().eq('id',id);}
 async function removeMember(id){if(!db)return;await db.from('tasks').delete().eq('member_id',id);await db.from('members').delete().eq('id',id);openCards.delete(id);}
 function openModal(){document.getElementById('modal').classList.add('open');document.getElementById('inp-name').focus();}
