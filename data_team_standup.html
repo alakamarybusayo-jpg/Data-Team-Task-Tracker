@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Data Team — Daily Standup</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  
+:root {
+  --bg: #FFFFFF;
+  --surface: #FFFFFF;
+  --surface2: #F5F8FC;
+
+  --border: rgba(0, 60, 130, 0.12);
+  --border-strong: rgba(0, 60, 130, 0.25);
+
+  --text: #0B2545;
+  --text-muted: #4A6FA5;
+  --text-faint: #8AA4C2;
+
+  --blue: #1E6FD9;
+  --green: #2E8B57;
+  --red: #C0392B;
+
+  --radius: 10px;
+  --radius-lg: 14px;
+
+}
+  body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; padding: 2rem 1rem 4rem; }
+  .page { max-width: 760px; margin: 0 auto; }
+  .setup-banner { background: #FAEEDA; border: 1px solid #FAC775; border-radius: var(--radius-lg); padding: 1.25rem 1.5rem; margin-bottom: 1.5rem; }
+  .setup-banner h3 { font-size: 15px; font-weight: 600; color: #633806; margin-bottom: 6px; }
+  .setup-banner p { font-size: 13px; color: #854F0B; line-height: 1.6; }
+  .setup-banner code { background: rgba(0,0,0,0.08); padding: 1px 6px; border-radius: 4px; font-family: 'DM Mono', monospace; font-size: 12px; }
+  .setup-banner.hidden { display: none; }
+  .top-bar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 2rem; flex-wrap: wrap; gap: 12px; }
+  .brand-title { font-size: 22px; font-weight: 600; letter-spacing: -0.3px; }
+  .brand-sub { font-size: 13px; color: var(--text-muted); margin-top: 2px; font-family: 'DM Mono', monospace; }
+  .top-right { display: flex; gap: 8px; align-items: center; }
+  .sync-status { font-size: 12px; color: var(--text-faint); display: flex; align-items: center; gap: 5px; }
+  .sync-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--text-faint); }
+  .sync-dot.live { background: var(--green); }
+  .sync-dot.error { background: var(--red); }
+  .add-btn { display: flex; align-items: center; gap: 7px; font-size: 13px; font-weight: 500; padding: 8px 16px; border-radius: var(--radius); background: var(--text); color: #fff; border: none; cursor: pointer; font-family: 'DM Sans', sans-serif; transition: opacity 0.15s; }
+  .add-btn:hover { opacity: 0.85; }
+  .summary { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 1.5rem; }
+  .stat { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px 14px; }
+  .stat-val { font-size: 22px; font-weight: 600; line-height: 1; }
+  .stat-lbl { font-size: 11px; color: var(--text-muted); margin-top: 4px; text-transform: uppercase; letter-spacing: 0.05em; }
+  .stat-val.green { color: var(--green); }
+  .stat-val.blue { color: var(--blue); }
+  .stat-val.red { color: var(--red); }
+  .members { display: flex; flex-direction: column; gap: 12px; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; transition: box-shadow 0.2s; }
+  .card:hover { box-shadow: 0 2px 12px rgba(0,0,0,0.06); }
+  .card-header { display: flex; align-items: center; gap: 12px; padding: 14px 16px; cursor: pointer; border-bottom: 1px solid transparent; transition: border-color 0.15s; }
+  .card-header.open { border-bottom-color: var(--border); }
+  .avatar { width: 38px; height: 38px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 13px; flex-shrink: 0; font-family: 'DM Mono', monospace; }
+  .member-info { flex: 1; min-width: 0; }
+  .member-name { font-weight: 600; font-size: 15px; }
+  .member-role { font-size: 12px; color: var(--text-muted); margin-top: 1px; }
+  .dots { display: flex; gap: 5px; align-items: center; }
+  .dot { width: 7px; height: 7px; border-radius: 50%; }
+  .dot.green { background: var(--green); }
+  .dot.blue { background: var(--blue); }
+  .dot.red { background: var(--red); }
+  .chevron { color: var(--text-faint); transition: transform 0.2s; margin-left: 4px; }
+  .chevron.open { transform: rotate(180deg); }
+  .card-body { padding: 16px; display: flex; flex-direction: column; gap: 16px; }
+  .section-title { display: flex; align-items: center; gap: 7px; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.07em; color: var(--text-muted); margin-bottom: 8px; }
+  .task-list { display: flex; flex-direction: column; gap: 5px; }
+  .task-row { display: flex; align-items: flex-start; gap: 8px; font-size: 14px; color: var(--text); line-height: 1.5; }
+  .task-row .dot { margin-top: 6px; flex-shrink: 0; }
+  .task-text { flex: 1; }
+  .task-del { background: none; border: none; cursor: pointer; color: var(--text-faint); font-size: 13px; padding: 0 2px; opacity: 0; transition: opacity 0.15s; line-height: 1.5; }
+  .task-row:hover .task-del { opacity: 1; }
+  .task-del:hover { color: var(--red); }
+  .empty { font-size: 13px; color: var(--text-faint); font-style: italic; }
+  .add-row { display: flex; gap: 6px; margin-top: 6px; }
+  .add-row input { flex: 1; font-size: 13px; padding: 7px 10px; border-radius: var(--radius); border: 1px solid var(--border-strong); background: var(--surface2); color: var(--text); font-family: 'DM Sans', sans-serif; outline: none; }
+  .add-row input:focus { border-color: var(--text); }
+  .add-row button { font-size: 13px; padding: 7px 12px; border-radius: var(--radius); background: none; border: 1px solid var(--border-strong); cursor: pointer; color: var(--text-muted); font-family: 'DM Sans', sans-serif; }
+  .add-row button:hover { background: var(--surface2); }
+  .add-toggle { font-size: 12px; color: var(--text-faint); background: none; border: none; cursor: pointer; padding: 2px 0; display: flex; align-items: center; gap: 4px; font-family: 'DM Sans', sans-serif; margin-top: 4px; }
+  .add-toggle:hover { color: var(--text-muted); }
+  .divider { border: none; border-top: 1px solid var(--border); }
+  .remove-btn { font-size: 12px; color: var(--text-faint); background: none; border: none; cursor: pointer; font-family: 'DM Sans', sans-serif; display: flex; align-items: center; gap: 5px; padding: 2px 0; margin-top: -4px; }
+  .remove-btn:hover { color: var(--red); }
+  .loading { text-align: center; padding: 3rem; color: var(--text-faint); font-size: 14px; }
+  .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.35); z-index: 200; align-items: center; justify-content: center; }
+  .modal-overlay.open { display: flex; }
+  .modal { background: var(--surface); border-radius: var(--radius-lg); border: 1px solid var(--border); padding: 1.5rem; width: 360px; display: flex; flex-direction: column; gap: 14px; box-shadow: 0 8px 32px rgba(0,0,0,0.12); }
+  .modal h3 { font-size: 16px; font-weight: 600; }
+  .modal label { font-size: 13px; color: var(--text-muted); display: block; margin-bottom: 5px; }
+  .modal input { width: 100%; font-size: 14px; padding: 8px 11px; border-radius: var(--radius); border: 1px solid var(--border-strong); background: var(--surface2); color: var(--text); font-family: 'DM Sans', sans-serif; outline: none; }
+  .modal input:focus { border-color: var(--text); }
+  .modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 4px; }
+  .btn-cancel { font-size: 13px; padding: 8px 16px; border-radius: var(--radius); background: none; border: 1px solid var(--border-strong); cursor: pointer; color: var(--text-muted); font-family: 'DM Sans', sans-serif; }
+  .btn-save { font-size: 13px; font-weight: 500; padding: 8px 20px; border-radius: var(--radius); background: var(--text); color: #fff; border: none; cursor: pointer; font-family: 'DM Sans', sans-serif; }
+  .btn-save:hover { opacity: 0.85; }
+.add-btn,
+.btn-save {
+  background: var(--blue);
+}
+
+@media (max-width: 520px) {
+  .summary {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="setup-banner" id="setup-banner">
+    <h3>⚙️ One-time setup required</h3>
+    <p>Open this file in a text editor (Notepad on Windows, TextEdit on Mac). Find the two lines near the top of the &lt;script&gt; section that say <code>https://ualdfieesfhzohyrnbnp.supabase.co</code> and <code>eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVhbGRmaWVlc2Zoem9oeXJuYm5wIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg1NjgzMjcsImV4cCI6MjA5NDE0NDMyN30.p8FmMVatsikwKSpBzejyQvrgavaY8n57Zsbxtu4j4gs</code>, and replace them with your values from Supabase. Follow the step-by-step instructions that came with this file.</p>
+  </div>
+
+  <div class="top-bar">
+    <div class="brand">
+      <div class="brand-title">Data Team Task Tracker</div>
+      <div class="brand-sub" id="today-date"></div>
+    </div>
+    <div class="top-right">
+      <div class="sync-status">
+        <div class="sync-dot" id="sync-dot"></div>
+        <span id="sync-label">Not connected</span>
+      </div>
+      <button class="add-btn" onclick="openModal()">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="7" y1="1" x2="7" y2="13"/><line x1="1" y1="7" x2="13" y2="7"/></svg>
+        Add member
+      </button>
+    </div>
+  </div>
+
+  <div class="summary" id="summary"></div>
+  <div id="members-wrap"><div class="loading">Loading…</div></div>
+</div>
+
+<div class="modal-overlay" id="modal">
+  <div class="modal">
+    <h3>Add team member</h3>
+    <div><label>Name</label><input id="inp-name" placeholder="e.g. Amara Okafor" /></div>
+    <div><label>Role</label><input id="inp-role" placeholder="e.g. Data Analyst" /></div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal()">Cancel</button>
+      <button class="btn-save" onclick="addMember()">Add member</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ============================================================
+//  STEP 1: Paste your Supabase details below
+// ============================================================
+const SUPABASE_URL      = 'https://ualdfieesfhzohyrnbnp.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVhbGRmaWVlc2Zoem9oeXJuYm5wIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg1NjgzMjcsImV4cCI6MjA5NDE0NDMyN30.p8FmMVatsikwKSpBzejyQvrgavaY8n57Zsbxtu4j4gs';
+// ============================================================
+
+const COLORS = [
+  { bg:'#E6F1FB', text:'#0C447C' }, { bg:'#EAF3DE', text:'#27500A' },
+  { bg:'#EEEDFE', text:'#3C3489' }, { bg:'#FAEEDA', text:'#633806' },
+  { bg:'#FBEAF0', text:'#72243E' }, { bg:'#FAECE7', text:'#712B13' },
+];
+
+let db = null, members = [], openCards = new Set();
+
+function initials(n) { return n.trim().split(/\s+/).map(w=>w[0]).join('').slice(0,2).toUpperCase(); }
+
+function setStatus(s) {
+  const dot = document.getElementById('sync-dot');
+  const lbl = document.getElementById('sync-label');
+  if (s==='live')  { dot.className='sync-dot live';  lbl.textContent='Live'; }
+  else if (s==='error') { dot.className='sync-dot error'; lbl.textContent='Not connected'; }
+  else             { dot.className='sync-dot';        lbl.textContent='Connecting…'; }
+}
+
+async function init() {
+  document.getElementById('today-date').textContent =
+    new Date().toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+
+  document.getElementById('setup-banner').classList.add('hidden');
+  try {
+    db = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    setStatus('connecting');
+    await loadData();
+    setStatus('live');
+    db.channel('changes')
+      .on('postgres_changes',{event:'*',schema:'public',table:'members'},loadData)
+      .on('postgres_changes',{event:'*',schema:'public',table:'tasks'},loadData)
+      .subscribe();
+  } catch(e) { console.error(e); setStatus('error'); }
+}
+
+async function loadData() {
+  const {data:ms,error:me} = await db.from('members').select('*').order('created_at');
+  const {data:ts,error:te} = await db.from('tasks').select('*').order('created_at');
+  if (me||te) { setStatus('error'); return; }
+  members = ms.map((m,i)=>({
+    ...m, color:i,
+    done:    ts.filter(t=>t.member_id===m.id&&t.type==='done').map(t=>({id:t.id,text:t.text})),
+    doing:   ts.filter(t=>t.member_id===m.id&&t.type==='doing').map(t=>({id:t.id,text:t.text})),
+    blocked: ts.filter(t=>t.member_id===m.id&&t.type==='blocked').map(t=>({id:t.id,text:t.text})),
+  }));
+  if (openCards.size===0) members.forEach(m=>openCards.add(m.id));
+  renderMembers();
+}
+
+function renderSummary() {
+  const done=members.reduce((a,m)=>a+(m.done?.length||0),0);
+  const doing=members.reduce((a,m)=>a+(m.doing?.length||0),0);
+  const blocked=members.reduce((a,m)=>a+(m.blocked?.length||0),0);
+  document.getElementById('summary').innerHTML=`
+    <div class="stat"><div class="stat-val">${members.length}</div><div class="stat-lbl">Members</div></div>
+    <div class="stat"><div class="stat-val green">${done}</div><div class="stat-lbl">Done</div></div>
+    <div class="stat"><div class="stat-val blue">${doing}</div><div class="stat-lbl">In Progress</div></div>
+    <div class="stat"><div class="stat-val red">${blocked}</div><div class="stat-lbl">Blockers</div></div>`;
+}
+
+function taskItem(t,type,mid){
+  const cls=type==='done'?'green':type==='doing'?'blue':'red';
+  return `<div class="task-row"><div class="dot ${cls}"></div><span class="task-text">${t.text}</span><button class="task-del" onclick="removeTask('${t.id}')">✕</button></div>`;
+}
+function addBlock(mid,type){
+  return `<div class="add-row" id="arow-${mid}-${type}" style="display:none">
+    <input id="ainp-${mid}-${type}" placeholder="Add item…" onkeydown="if(event.key==='Enter')saveTask('${mid}','${type}')" />
+    <button onclick="saveTask('${mid}','${type}')">✓</button></div>
+    <button class="add-toggle" onclick="toggleAdd('${mid}','${type}')">+ add</button>`;
+}
+
+function renderMembers(){
+  const wrap=document.getElementById('members-wrap');
+  if(!members.length){wrap.innerHTML='<div class="loading">No team members yet — add one above.</div>';renderSummary();return;}
+  wrap.innerHTML=`<div class="members">${members.map(m=>{
+    const c=COLORS[m.color%COLORS.length],isOpen=openCards.has(m.id);
+    const hasDots=m.done.length||m.doing.length||m.blocked.length;
+    return `<div class="card">
+      <div class="card-header ${isOpen?'open':''}" onclick="toggleMember('${m.id}')">
+        <div class="avatar" style="background:${c.bg};color:${c.text}">${initials(m.name)}</div>
+        <div class="member-info"><div class="member-name">${m.name}</div><div class="member-role">${m.role}</div></div>
+        ${hasDots?`<div class="dots">${m.done.length?'<div class="dot green"></div>':''}${m.doing.length?'<div class="dot blue"></div>':''}${m.blocked.length?'<div class="dot red"></div>':''}</div>`:''}
+        <svg class="chevron ${isOpen?'open':''}" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><polyline points="4,6 8,10 12,6"/></svg>
+      </div>
+      ${isOpen?`<div class="card-body">
+        <div><div class="section-title"><div class="dot green"></div>Done yesterday</div>
+          <div class="task-list">${m.done.length?m.done.map(t=>taskItem(t,'done',m.id)).join(''):'<span class="empty">Nothing logged yet</span>'}</div>${addBlock(m.id,'done')}</div>
+        <hr class="divider">
+        <div><div class="section-title"><div class="dot blue"></div>Working on today</div>
+          <div class="task-list">${m.doing.length?m.doing.map(t=>taskItem(t,'doing',m.id)).join(''):'<span class="empty">Nothing logged yet</span>'}</div>${addBlock(m.id,'doing')}</div>
+        <hr class="divider">
+        <div><div class="section-title"><div class="dot red"></div>Blockers</div>
+          <div class="task-list">${m.blocked.length?m.blocked.map(t=>taskItem(t,'blocked',m.id)).join(''):'<span class="empty">No blockers</span>'}</div>${addBlock(m.id,'blocked')}</div>
+        <hr class="divider">
+        <button class="remove-btn" onclick="removeMember('${m.id}')">✕ Remove member</button>
+      </div>`:''}
+    </div>`;
+  }).join('')}</div>`;
+  renderSummary();
+}
+
+function toggleMember(id){if(openCards.has(id))openCards.delete(id);else openCards.add(id);renderMembers();}
+function toggleAdd(mid,type){const r=document.getElementById(`arow-${mid}-${type}`);if(!r)return;const s=r.style.display!=='none';r.style.display=s?'none':'flex';if(!s)document.getElementById(`ainp-${mid}-${type}`).focus();}
+async function saveTask(mid,type){const inp=document.getElementById(`ainp-${mid}-${type}`);const val=inp.value.trim();if(!val||!db)return;inp.value='';await db.from('tasks').insert({member_id:mid,type,text:val});}
+async function removeTask(id){if(!db)return;await db.from('tasks').delete().eq('id',id);}
+async function removeMember(id){if(!db)return;await db.from('tasks').delete().eq('member_id',id);await db.from('members').delete().eq('id',id);openCards.delete(id);}
+function openModal(){document.getElementById('modal').classList.add('open');document.getElementById('inp-name').focus();}
+function closeModal(){document.getElementById('modal').classList.remove('open');}
+async function addMember(){const name=document.getElementById('inp-name').value.trim();const role=document.getElementById('inp-role').value.trim();if(!name||!db)return;document.getElementById('inp-name').value='';document.getElementById('inp-role').value='';closeModal();await db.from('members').insert({name,role:role||'Data Team'});}
+document.getElementById('modal').addEventListener('click',e=>{if(e.target===e.currentTarget)closeModal();});
+init();
+</script>
+</body>
+</html>
