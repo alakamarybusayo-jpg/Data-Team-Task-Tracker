@@ -7,6 +7,17 @@
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet" />
 <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
 <style>
+.task-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.task-actions button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 13px;
+}
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
   
 :root {
@@ -221,15 +232,20 @@ function renderSummary() {
     <div class="stat"><div class="stat-val red">${blocked}</div><div class="stat-lbl">Blockers</div></div>`;
 }
 
-function taskItem(t,type,mid){
-  const cls=type==='done'?'green':type==='doing'?'blue':'red';
-  return `<div class="task-row"><div class="dot ${cls}"></div><span class="task-text">${t.text}</span><button class="task-del" onclick="removeTask('${t.id}')">✕</button></div>`;
-}
-function addBlock(mid,type){
-  return `<div class="add-row" id="arow-${mid}-${type}" style="display:none">
-    <input id="ainp-${mid}-${type}" placeholder="Add item…" onkeydown="if(event.key==='Enter')saveTask('${mid}','${type}')" />
-    <button onclick="saveTask('${mid}','${type}')">✓</button></div>
-    <button class="add-toggle" onclick="toggleAdd('${mid}','${type}')">+ add</button>`;
+function taskItem(t, type) {
+  return `
+  <div class="task-row">
+    <div class="dot ${type === 'done' ? 'green' : type === 'doing' ? 'blue' : 'red'}"></div>
+
+    <span class="task-text">${t.text}</span>
+
+    <div class="task-actions">
+      <button onclick="changeStatus('${t.id}', 'doing')" title="In progress">🔄</button>
+      <button onclick="changeStatus('${t.id}', 'done')" title="Done">✅</button>
+      <button onclick="changeStatus('${t.id}', 'blocked')" title="Blocked">🚫</button>
+      <button class="task-del" onclick="removeTask('${t.id}')">✕</button>
+    </div>
+  </div>`;
 }
 
 function renderMembers(){
@@ -271,6 +287,13 @@ function openModal(){document.getElementById('modal').classList.add('open');docu
 function closeModal(){document.getElementById('modal').classList.remove('open');}
 async function addMember(){const name=document.getElementById('inp-name').value.trim();const role=document.getElementById('inp-role').value.trim();if(!name||!db)return;document.getElementById('inp-name').value='';document.getElementById('inp-role').value='';closeModal();await db.from('members').insert({name,role:role||'Data Team'});}
 document.getElementById('modal').addEventListener('click',e=>{if(e.target===e.currentTarget)closeModal();});
+
+async function changeStatus(taskId, newType) {
+  if (!db) return;
+  await db.from('tasks')
+    .update({ type: newType })
+    .eq('id', taskId);
+}
 init();
 </script>
 </body>
