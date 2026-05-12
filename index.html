@@ -294,6 +294,18 @@ async function changeStatus(taskId, newType) {
     .update({ type: newType })
     .eq('id', taskId);
 }
+
+function addBlock(mid, type) {
+  return `
+    <div class="add-row">
+      <input
+        placeholder="Add task…"
+        onkeydown="if(event.key==='Enter') saveTask('${mid}','${type}', this.value); this.value='';"
+      />
+    </div>
+  `;
+}
+
 init();
 </script>
 </body>
